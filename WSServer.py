@@ -1,33 +1,51 @@
-import websockets
 import asyncio
+import websockets
+from queue import Queue
 
-# PORT e ADDRESS devem vir de alguma váriavel de ambiente
 PORT = 7890
 ADDRESS = "localhost"
+DICTIONARY = ["codeplay", "jogo", "Lado A", "Lado B"]
 
-print("Server address -> " + ADDRESS + ":" + str(PORT))
+client_id = "none"
+authenticated_clients = {}
+message_queue = Queue()
 
-connected = set()
+async def authenticate_client(websocket, client_id):
+    # Se o client_id for válido, adiciona o cliente à lista de clientes autenticados
+    if client_id in DICTIONARY:
+        authenticated_clients[client_id] = websocket
+        return True
+    else:
+        return False
 
 async def handle(websocket, path):
-    print("cliente conectado")
-    connected.add(websocket)
-
     try:
-        async for message in websocket:
-            print("Menssagem recebida: " + message)
-            for conn in connected:
-                if conn != websocket:
-                    await conn.send("said: " + message)
-    #Verificar melhor forma de detectar conexão fechada
-    except websockets.exceptions.ConnectionClosed as e:
-        print("Cliente desconectado")
-    finally:
-        connected.remove(websocket)
+        client_id = await websocket.recv()
+        if await authenticate_client(websocket, client_id):
+            print(f"Cliente {client_id} conectado")
+
+            async for message in websocket:
+                print(f"Mensagem recebida do {client_id}: {message}")
+                message_queue.put((client_id, message))
+        else:
+            await websocket.send("Bad Request: ID não existe no dicionário.")
+            await websocket.close()
+    except websockets.exceptions.ConnectionClosed:
+        del authenticated_clients[client_id]
+        print(f"Conexão fechada para {client_id}")
+
+async def send_messages():
+    while True:
+        if not message_queue.empty():
+            client_id, message = message_queue.get()
+            for client in authenticated_clients.values():
+                if client != authenticated_clients[client_id]:
+                    await client.send(f"{client_id} disse: {message}")
+        await asyncio.sleep(0.1)
 
 async def main():
-    async with websockets.serve(handle, ADDRESS, PORT):
-        await asyncio.Future()  # run forever
+    start_server = websockets.serve(handle, ADDRESS, PORT)
+    await asyncio.gather(start_server, send_messages())
 
 if __name__ == "__main__":
     asyncio.run(main())
