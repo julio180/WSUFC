@@ -1,0 +1,16 @@
+{
+  "clientes": [
+    {
+      "client_id": "id1",
+      "coms": ["id2", "id3"]
+    },
+    {
+      "client_id": "id2",
+      "coms": ["id3", "id1"]
+    },
+    {
+      "client_id": "id3",
+      "coms": ["id1"]
+    }
+  ]
+}

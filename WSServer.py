@@ -1,19 +1,35 @@
+import json
 import asyncio
 import websockets
 from queue import Queue
 
 PORT = 7890
 ADDRESS = "localhost"
-DICTIONARY = ["codeplay", "jogo", "Lado A", "Lado B"]
 
 client_id = "none"
 authenticated_clients = {}
 message_queue = Queue()
 
+
+def get_data_json_file():
+    with open('dicionario.json', 'r') as file:
+        return json.load(file)
+
+def get_all_client_ids():
+    data = get_data_json_file()
+    return [client["client_id"] for client in data["clientes"]]
+
+def get_coms_by_client_id(client_id):
+    data = get_data_json_file()
+    for client in data["clientes"]:
+        if client["client_id"] == client_id:
+            return client["coms"]
+    return None
+
 async def authenticate_client(websocket, client_id):
     # Função para autenticar um cliente com base no client_id.
     # Adiciona o cliente à lista de clientes autenticados se o ID for válido.
-    if client_id in DICTIONARY:
+    if client_id in get_all_client_ids():
         authenticated_clients[client_id] = websocket
         return True
     else:
@@ -28,7 +44,7 @@ async def handle(websocket, path):
 
             # Aguarda mensagens do cliente autenticado.
             async for message in websocket:
-                print(f"Mensagem recebida do {client_id}: {message}")
+                print(f"Mensagem recebida do {client_id}: {message} para o {get_coms_by_client_id(client_id)}")
                 # Coloca a mensagem na fila para ser enviada para outros clientes.
                 message_queue.put((client_id, message))
         else:
@@ -45,10 +61,10 @@ async def send_messages():
     while True:
         if not message_queue.empty():
             client_id, message = message_queue.get()
-            # Envia a mensagem para todos os clientes autenticados, exceto o remetente original.
-            for client in authenticated_clients.values():
-                if client != authenticated_clients[client_id]:
-                    await client.send(f"{client_id} disse: {message}")
+            # Envia a mensagem para todos os clientes linkados ao client_id.
+            coms_per_client =[authenticated_clients.get(chave) for chave in get_coms_by_client_id(client_id)]
+            for client in coms_per_client:
+                await client.send(f"{client_id} disse: {message}")
         # Aguarda um curto período antes de verificar a fila novamente.
         await asyncio.sleep(0.1)
 
