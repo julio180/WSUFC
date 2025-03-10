@@ -1,10 +1,14 @@
+import os
 import json
 import asyncio
 import websockets
 from queue import Queue
+from dotenv import load_dotenv
 
-PORT = 7890
-ADDRESS = "localhost"
+load_dotenv()
+
+PORT = os.getenv('PORT')
+ADDRESS = os.getenv('ADDRESS')
 
 client_id = "none"
 authenticated_clients = {}

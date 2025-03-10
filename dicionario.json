@@ -1,16 +1,22 @@
 {
   "clientes": [
     {
-      "client_id": "id1",
-      "coms": ["id2", "id3"]
+      "user_id": "user1",  
+      "client_id": "id1",  
+      "coms": ["id2", "id3"],
+      "status": "active"
     },
     {
+      "user_id": "user2",
       "client_id": "id2",
-      "coms": ["id3", "id1"]
+      "coms": ["id3", "id1"],
+      "status": "active"
     },
     {
+      "user_id": "user1",
       "client_id": "id3",
-      "coms": ["id1"]
+      "coms": ["id1"],
+      "status": "active"
     }
   ]
 }
